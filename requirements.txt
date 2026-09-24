@@ -1,0 +1,7 @@
+mistralai==2.10.1
+python-dotenv==1.2.3
+fastapi==0.141.1
+uvicorn==0.53.0
+guardrails-ai==0.11.0
+guardrails-ai-prompt-injection-detector==0.0.2
+guardrails-ai-detect-system-prompt-leakage==0.1.0

@@ -33,22 +33,28 @@ class FeatureInfo(BaseModel):
     key: str
     label: str
     stage: Literal["input", "output"]
-    threshold: Threshold
+    threshold: Threshold | None  # None = pas de seuil réglable
 
 
 app = FastAPI(title="Chatbot échecs")
 llm = MistralLLM()
 
 
+def default_threshold(key: str) -> float | None:
+    """Seuil par défaut du guard, ou None s'il n'a pas de seuil."""
+    threshold = FEATURES[key].threshold
+    return threshold.default if threshold else None
+
+
 @lru_cache(maxsize=64)
-def get_guard(key: str, threshold: float) -> Guard:
+def get_guard(key: str, threshold: float | None) -> Guard:
     """Crée le guard pour ce seuil, une seule fois par couple (guard, seuil)."""
-    return FEATURES[key].build(threshold)
+    return FEATURES[key].build(threshold) if threshold is not None else FEATURES[key].build()
 
 
 # Au démarrage, on crée chaque guard avec son seuil par défaut : s'il manque un validateur, l'API refuse de démarrer.
-for key, feature in FEATURES.items():
-    get_guard(key, feature.threshold.default)
+for key in FEATURES:
+    get_guard(key, default_threshold(key))
 
 
 @app.get("/features")
@@ -70,11 +76,13 @@ def chat(request: ChatRequest) -> PipelineResult:
         raise HTTPException(status_code=422, detail=f"Guards inconnus : {sorted(unknown)}")
     for key, value in request.thresholds.items():
         limits = FEATURES[key].threshold
+        if limits is None:
+            raise HTTPException(status_code=422, detail=f"{key} n'a pas de seuil réglable.")
         if not limits.min <= value <= limits.max:
             raise HTTPException(status_code=422, detail=f"Seuil de {key} hors limites : {limits.min} à {limits.max}.")
 
     def guard_for(key: str) -> Guard:
-        return get_guard(key, request.thresholds.get(key, FEATURES[key].threshold.default))
+        return get_guard(key, request.thresholds.get(key, default_threshold(key)))
 
     pipeline = build_pipeline(llm, request.features, guard_for)
     return pipeline.run([message.model_dump() for message in request.messages])

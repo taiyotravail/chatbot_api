@@ -6,6 +6,7 @@ from typing import Literal
 
 from chatbot.guards import Guard
 from chatbot.guards.prompt_injection import PromptInjectionGuard
+from chatbot.guards.regex_keywords import RegexKeywordsGuard
 from chatbot.guards.system_prompt_leak import SystemPromptLeakGuard
 from chatbot.pipeline import LLM, Pipeline
 
@@ -26,12 +27,14 @@ class Feature:
 
     label: str
     stage: Literal["input", "output"]
-    build: Callable[[float], Guard]  # reçoit le seuil
-    threshold: Threshold
+    build: Callable[..., Guard]  # reçoit le seuil, sauf si le guard n'en a pas
+    threshold: Threshold | None = None  # None = pas de seuil (ex. regex : trouvé ou pas)
 
 
 # Seulement les guards légers : ils tiennent dans les 512 Mo de Render Free.
+# L'ordre compte : c'est l'ordre d'exécution, du moins cher (regex) au plus cher (appel à Mistral).
 FEATURES: dict[str, Feature] = {
+    "regex_keywords": Feature("Anti mots-clés (regex)", "input", RegexKeywordsGuard),
     "prompt_injection": Feature(
         "Anti prompt injection", "input", PromptInjectionGuard, Threshold(default=0.8, min=0, max=1, step=0.05)
     ),
@@ -42,12 +45,12 @@ FEATURES: dict[str, Feature] = {
 
 
 def build_pipeline(llm: LLM, enabled: list[str], get_guard: Callable[[str], Guard]) -> Pipeline:
-    """Construit le pipeline avec les seules fonctionnalités `enabled`.
+    """Construit le pipeline avec les seules fonctionnalités `enabled`, dans l'ordre de FEATURES.
 
     `get_guard` fournit l'instance d'un guard à partir de sa clé.
     """
     pipeline = Pipeline(llm=llm)
-    for key in enabled:
+    for key in [key for key in FEATURES if key in enabled]:
         guard = get_guard(key)
         if FEATURES[key].stage == "input":
             pipeline.input_guards.append(guard)

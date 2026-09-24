@@ -1,7 +1,7 @@
 # Chatbot échecs – API
 
 API FastAPI du chatbot, prête pour Render. Version allégée du POC `test_mistral` :
-pas de Streamlit, seulement les 2 guards légers (≈ 270 Mo de RAM).
+pas de Streamlit, seulement les 3 guards légers (≈ 270 Mo de RAM).
 
 ## Architecture
 
@@ -16,6 +16,7 @@ chatbot/
   factory.py                   catalogue des guards (avec seuil par défaut, min, max) + assemblage
   guards/
     base.py                    contrat commun
+    regex_keywords.py          entrée : RegexMatch (Guardrails Hub), un motif interdit par validateur
     prompt_injection.py        entrée : PromptInjectionDetector (Guardrails Hub)
     system_prompt_leak.py      sortie : DetectSystemPromptLeakage (Guardrails Hub)
 Dockerfile                     comment construire et lancer le conteneur

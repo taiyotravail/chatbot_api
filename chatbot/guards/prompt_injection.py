@@ -9,7 +9,8 @@ class PromptInjectionGuard:
 
     name = "prompt_injection"
 
-    def __init__(self, threshold: float = 0.8) -> None:
+    def __init__(self, threshold: float) -> None:
+        # threshold : note du juge de 0 à 1 ; bloqué si note > threshold (défaut dans factory.py).
         # Import local : le validateur n'est requis que si ce guard est activé.
         from guardrails import Guard as GuardrailsGuard
         from guardrails_ai.prompt_injection_detector import PromptInjectionDetector

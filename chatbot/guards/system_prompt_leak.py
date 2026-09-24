@@ -9,7 +9,8 @@ class SystemPromptLeakGuard:
 
     name = "system_prompt_leak"
 
-    def __init__(self, threshold: int = 40) -> None:
+    def __init__(self, threshold: float) -> None:
+        # threshold : ressemblance de 0 à 100 ; bloqué si ressemblance > threshold (défaut dans factory.py).
         # Import local : le validateur n'est requis que si ce guard est activé.
         from guardrails import Guard as GuardrailsGuard
         from guardrails_ai.detect_system_prompt_leakage import DetectSystemPromptLeakage

@@ -6,13 +6,14 @@ pas de Streamlit, seulement les 2 guards légers (≈ 270 Mo de RAM).
 ## Architecture
 
 ```
-api.py                         POST /chat  (guards choisis dans ENABLED_FEATURES)
+api.py                         GET /features (guards + plage de seuil)
+                               POST /chat (guards et seuils choisis par le site)
 chatbot/
   config.py                    variables d'environnement
   system_prompt.py             prompt système
   llm.py                       appel à Mistral
   pipeline.py                  guards d'entrée -> LLM -> guards de sortie
-  factory.py                   catalogue des guards + assemblage
+  factory.py                   catalogue des guards (avec seuil par défaut, min, max) + assemblage
   guards/
     base.py                    contrat commun
     prompt_injection.py        entrée : PromptInjectionDetector (Guardrails Hub)

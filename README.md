@@ -3,6 +3,19 @@
 API FastAPI du chatbot, prête pour Render. Version allégée du POC `test_mistral` :
 pas de Streamlit, seulement les 3 guards légers (≈ 270 Mo de RAM).
 
+Démo en ligne : https://www.taiyo-degarate.com/chatbot-guardrails
+
+## Méthode de développement
+
+**Développement agentique encadré** : des agents IA accélèrent le code, chaque modification est
+revue, testée et validée par un humain avant sa mise en production.
+
+1. **Génération** : un agent IA écrit le code, selon des standards définis (modularité, typage, documentation).
+2. **Critique** : le code est relu et testé pour détecter les erreurs et les failles.
+3. **Arbitrage humain** : rien n'est fusionné ni déployé sans validation manuelle.
+
+C'est pourquoi certains commits portent la mention `Co-Authored-By: Claude`.
+
 ## Architecture
 
 ```

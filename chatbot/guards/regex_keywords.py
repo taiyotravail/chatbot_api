@@ -1,20 +1,59 @@
 """Guardrail d'entrée : bloque les mots-clés d'attaque avec RegexMatch (Guardrails Hub).
 
-Les motifs sont expliqués sur le site (portfolio/components/chatbot/guide-content.ts) :
-garder les deux fichiers synchronisés.
+Seule source des motifs : GET /features les renvoie, et le site les affiche dans son guide.
 """
+
+from dataclasses import dataclass
 
 from chatbot.guards.base import GuardResult
 
-# Nom affiché -> motif interdit (insensible à la casse).
-BANNED_PATTERNS: dict[str, str] = {
-    "Ignorer les consignes": r"(ignor|oubli|forget|disregard)\w*\s+(\S+\s+){0,3}(instructions?|consignes?|r[eè]gles?|rules)",
-    "Demander le prompt système": r"(prompt|message)\s+(syst[eè]me|system)|system\s+prompt",
-    "Nouvelles consignes": r"nouvel(le)?s?\s+(consignes?|instructions?|r[eè]gles?)|restrictions?\s+(sont\s+)?(suspendue|lev[ée]e|d[ée]sactiv[ée]e)s?",
-    "Faux format système": r"\[\s*/?\s*(system|syst[eè]me|admin)\s*\]",
-    "Personnage sans règles": r"sans\s+(aucune\s+)?(restrictions?|r[eè]gles?|limites?|filtres?)|aucune\s+r[eè]gle|\bDAN\b",
-    "Texte encodé (base64)": r"[A-Za-z0-9+/]{24,}={0,2}",
-}
+
+@dataclass(frozen=True)
+class BannedPattern:
+    """Un motif interdit, avec de quoi l'afficher et l'expliquer sur le site."""
+
+    label: str
+    regex: str  # insensible à la casse
+    explanation: str
+
+
+BANNED_PATTERNS: list[BannedPattern] = [
+    BannedPattern(
+        "Ignorer les consignes",
+        r"(ignor|oubli|forget|disregard)\w*\s+(\S+\s+){0,3}(instructions?|consignes?|r[eè]gles?|rules)",
+        "Un mot qui commence par « ignor » ou « oubli » (ou forget, disregard), puis au plus 3 mots, puis "
+        "« instructions », « consignes » ou « règles ». Attrape « Oublie toutes tes règles », pas « Ignore la théorie ».",
+    ),
+    BannedPattern(
+        "Demander le prompt système",
+        r"(prompt|message)\s+(syst[eè]me|system)|system\s+prompt",
+        "« prompt système », « message système » ou « system prompt ».",
+    ),
+    BannedPattern(
+        "Nouvelles consignes",
+        r"nouvel(le)?s?\s+(consignes?|instructions?|r[eè]gles?)|restrictions?\s+(sont\s+)?(suspendue|lev[ée]e|d[ée]sactiv[ée]e)s?",
+        "« nouvelle(s) consigne(s) / instruction(s) / règle(s) », ou des restrictions « suspendues », « levées » "
+        "ou « désactivées ».",
+    ),
+    BannedPattern(
+        "Faux format système",
+        r"\[\s*/?\s*(system|syst[eè]me|admin)\s*\]",
+        "Une balise comme [SYSTEM], [/SYSTEM] ou [ADMIN]. Les crochets sont précédés d'un \\ car ils ont un sens "
+        "spécial en regex.",
+    ),
+    BannedPattern(
+        "Personnage sans règles",
+        r"sans\s+(aucune\s+)?(restrictions?|r[eè]gles?|limites?|filtres?)|aucune\s+r[eè]gle|\bDAN\b",
+        "« sans (aucune) restriction / règle / limite / filtre », « aucune règle », ou le mot DAN seul "
+        "(grâce à \\b, « dans » n'est pas concerné).",
+    ),
+    BannedPattern(
+        "Texte encodé (base64)",
+        r"[A-Za-z0-9+/]{24,}={0,2}",
+        "Au moins 24 caractères d'affilée parmi lettres, chiffres, + et /, sans espace : la forme d'un texte encodé "
+        "en base64. Aucun mot français n'est aussi long.",
+    ),
+]
 
 
 def forbid(pattern: str) -> str:
@@ -37,8 +76,10 @@ class RegexKeywordsGuard:
 
         # Un validateur par motif, pour savoir lequel a bloqué.
         self.guards = {
-            label: GuardrailsGuard().use(RegexMatch(regex=forbid(pattern), match_type="search", on_fail="noop"))
-            for label, pattern in BANNED_PATTERNS.items()
+            pattern.label: GuardrailsGuard().use(
+                RegexMatch(regex=forbid(pattern.regex), match_type="search", on_fail="noop")
+            )
+            for pattern in BANNED_PATTERNS
         }
 
     def check(self, text: str) -> GuardResult:

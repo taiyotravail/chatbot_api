@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from chatbot.factory import FEATURES, Threshold, build_pipeline
 from chatbot.guards import Guard
+from chatbot.guards.regex_keywords import BannedPattern
 from chatbot.llm import MistralLLM
 from chatbot.pipeline import PipelineResult
 
@@ -34,6 +35,7 @@ class FeatureInfo(BaseModel):
     label: str
     stage: Literal["input", "output"]
     threshold: Threshold | None  # None = pas de seuil réglable
+    patterns: list[BannedPattern] | None  # motifs interdits, pour le guide du site (guard regex seulement)
 
 
 app = FastAPI(title="Chatbot échecs")
@@ -59,9 +61,11 @@ for key in FEATURES:
 
 @app.get("/features")
 def list_features() -> list[FeatureInfo]:
-    """Liste les guards disponibles et leur plage de seuil (le site en fait des interrupteurs et des curseurs)."""
+    """Liste les guards disponibles, leur plage de seuil et leurs motifs (le site en fait interrupteurs, curseurs et guide)."""
     return [
-        FeatureInfo(key=key, label=feature.label, stage=feature.stage, threshold=feature.threshold)
+        FeatureInfo(
+            key=key, label=feature.label, stage=feature.stage, threshold=feature.threshold, patterns=feature.patterns
+        )
         for key, feature in FEATURES.items()
     ]
 

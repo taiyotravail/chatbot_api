@@ -6,7 +6,7 @@ from typing import Literal
 
 from chatbot.guards import Guard
 from chatbot.guards.prompt_injection import PromptInjectionGuard
-from chatbot.guards.regex_keywords import RegexKeywordsGuard
+from chatbot.guards.regex_keywords import BANNED_PATTERNS, BannedPattern, RegexKeywordsGuard
 from chatbot.guards.system_prompt_leak import SystemPromptLeakGuard
 from chatbot.pipeline import LLM, Pipeline
 
@@ -29,12 +29,13 @@ class Feature:
     stage: Literal["input", "output"]
     build: Callable[..., Guard]  # reçoit le seuil, sauf si le guard n'en a pas
     threshold: Threshold | None = None  # None = pas de seuil (ex. regex : trouvé ou pas)
+    patterns: list[BannedPattern] | None = None  # motifs affichés dans le guide du site (guard regex seulement)
 
 
 # Seulement les guards légers : ils tiennent dans les 512 Mo de Render Free.
 # L'ordre compte : c'est l'ordre d'exécution, du moins cher (regex) au plus cher (appel à Mistral).
 FEATURES: dict[str, Feature] = {
-    "regex_keywords": Feature("Anti mots-clés (regex)", "input", RegexKeywordsGuard),
+    "regex_keywords": Feature("Anti mots-clés (regex)", "input", RegexKeywordsGuard, patterns=BANNED_PATTERNS),
     "prompt_injection": Feature(
         "Anti prompt injection", "input", PromptInjectionGuard, Threshold(default=0.8, min=0, max=1, step=0.05)
     ),

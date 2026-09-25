@@ -6,7 +6,7 @@ pas de Streamlit, seulement les 3 guards légers (≈ 270 Mo de RAM).
 ## Architecture
 
 ```
-api.py                         GET /features (guards + plage de seuil)
+api.py                         GET /features (guards + plage de seuil + motifs regex)
                                POST /chat (guards et seuils choisis par le site)
 chatbot/
   config.py                    variables d'environnement
@@ -16,7 +16,7 @@ chatbot/
   factory.py                   catalogue des guards (avec seuil par défaut, min, max) + assemblage
   guards/
     base.py                    contrat commun
-    regex_keywords.py          entrée : RegexMatch (Guardrails Hub), un motif interdit par validateur
+    regex_keywords.py          entrée : RegexMatch (Guardrails Hub), seule source des motifs interdits
     prompt_injection.py        entrée : PromptInjectionDetector (Guardrails Hub)
     system_prompt_leak.py      sortie : DetectSystemPromptLeakage (Guardrails Hub)
 Dockerfile                     comment construire et lancer le conteneur
